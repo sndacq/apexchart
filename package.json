@@ -1,7 +1,7 @@
 {
   "name": "apexchart",
   "version": "0.1.0",
-  "homepage": "https://sndacq.github.io/test",
+  "homepage": "https://sndacq.github.io/apexchart",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.10.5",
