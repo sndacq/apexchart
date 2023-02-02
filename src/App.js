@@ -1,5 +1,5 @@
 import './App.css';
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 
 import Chart from "react-apexcharts";
 import { seriesData } from './data';
@@ -9,75 +9,95 @@ import {
   Toolbar,
   Typography,
   Button,
-  IconButton
+  IconButton,
+  Modal,
+  Box,
+  Stack,
+  TextField
 } from '@mui/material';
 
-
 const App = () => {
-  const options = {
-    chart: {
-      id: 'chart2',
-      type: 'line',
-      height: 230,
-      toolbar: {
-        autoSelected: 'pan',
-        show: false
-      }
-    },
-    colors: ['#546E7A'],
-    stroke: {
-      width: 3
-    },
-    dataLabels: {
-      enabled: false
-    },
-    fill: {
-      opacity: 1,
-    },
-    markers: {
-      size: 0
-    },
-    xaxis: {
-      type: 'datetime'
-    },
-    annotations: {
-      xaxis: [
-        {
-          x: new Date('09/01/2022').getTime(),
-          borderColor: '#775DD0',
-          label: {
-            style: {
-              color: 'blue',
-            },
-            text: 'This is a test'
-          }
-        },
-        {
-          x: new Date('10/01/2022').getTime(),
-          borderColor: '#775DD0',
-          orientation: 'vertical',
-          label: {
-            style: {
-              color: 'blue',
-            },
-            text: 'This is a test 2'
-          }
-        }
-      ],
-      yaxis: [
-        {
-          y: 300,
-          y2: 450,
-          borderColor: '#000',
-          fillColor: '#FEB019',
-          label: {
-            text: 'This is a test 3'
-          }
-        }
-      ],
-    },
+  const [xLabels, setXLabels] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [labelTextInput, setLabelTextInput] = useState('');
+  const [annotationDate, setAnnotationDate] = useState('');
+
+  const data = seriesData.map(item => ({
+    x: new Date(item.date).getTime(),
+    y: item.revenue.toFixed(2)
+  }));
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setLabelTextInput('');
+    setAnnotationDate('');
   };
 
+  const createAnnotation = () => {
+    setXLabels([
+      ...xLabels,
+      {
+        x: new Date(annotationDate).getTime(),
+        borderColor: '#775DD0',
+        orientation: 'vertical',
+        label: {
+          style: {
+            color: 'blue',
+          },
+          text: labelTextInput,
+        }
+      }
+    ]);
+    handleModalClose();
+  };
+
+  const handleOnChartClick = (e, chart, options) => {
+    const { dataPointIndex } = options;
+    const { date } = seriesData[dataPointIndex];
+    setModalOpen(true);
+    setAnnotationDate(date);
+  };
+
+  const getOptions = useMemo(() => {
+    return ({
+      chart: {
+        id: 'chart2',
+        type: 'line',
+        height: 230,
+        toolbar: {
+          autoSelected: 'pan',
+          show: false
+        },
+        events: {
+          click: (e, chart, options) => handleOnChartClick(e, chart, options),
+        }
+      },
+      colors: ['#546E7A'],
+      stroke: {
+        width: 3
+      },
+      dataLabels: {
+        enabled: false
+      },
+      fill: {
+        opacity: 1,
+      },
+      markers: {
+        size: 0
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+      annotations: {
+        xaxis: [...xLabels],
+      },
+    });
+  }, [xLabels]);
+
+  const series = [{
+    name: 'test',
+    data: data
+  }];
 
   const optionsLine = {
     chart: {
@@ -115,21 +135,26 @@ const App = () => {
     }
   };
 
-  const data = seriesData.map(item => ({
-    x: new Date(item.date).getTime(),
-    y: item.revenue.toFixed(2)
-  }));
-
-  const series = [{
-    name: 'test',
-    data: data
-  }];
-
   const seriesLine = [{
     name: 'test 2',
     data: data
   }];
 
+  const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+  };
+
+  const handleModalInputChange = (e) => {
+    setLabelTextInput(e.target.value);
+  };
 
   return (
     <div className="App">
@@ -151,12 +176,34 @@ const App = () => {
       </AppBar>
       <div id="wrapper">
         <div id="chart-line2">
-        <Chart options={options} series={series} type="line" height={230} />
+        <Chart options={getOptions} series={series} type="line" height={230} />
       </div>
         <div id="chart-line">
           <Chart options={optionsLine} series={seriesLine} type="area" height={130} />
         </div>
       </div>
+      <Modal
+        open={modalOpen}
+        onClose={() => handleModalClose()}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            What annotation would you like to add?
+          </Typography>
+          <TextField
+            label="Annotation"
+            variant="outlined"
+            value={labelTextInput}
+            onChange={(e) => handleModalInputChange(e)}
+          />
+          <Stack spacing={2} direction="row">
+            <Button onClick={() => createAnnotation()}>OK</Button>
+            <Button onClick={() => handleModalClose()}>Cancel</Button>
+          </Stack>
+        </Box>
+      </Modal>
     </div>
   );
 }
